@@ -6,6 +6,15 @@ import subprocess
 import sys
 import termios
 
+DHEAD = '^'
+UHEAD = 'v'
+LHEAD = '>'
+RHEAD = '<'
+UP = [0,1]
+RIGHT = [-1,0]
+DOWN = [0,-1]
+LEFT = [1,0]
+
 SEG = 'o'
 APPLE = '@'
 HEIGHT = 23
@@ -14,6 +23,7 @@ EASY = .2
 NORMAL = .1
 HARD = .06
 INSANE = .04
+IMPOSSIBLE = .01
 PATH = '/home/ben/Documents/programming/python/snake'
 
 
@@ -21,7 +31,8 @@ class Game:
 
 	def __init__(self):
 		self.snake = [[39,12],[40,12],[41,12],[42,12]]
-		self.direction = [1,0]
+		self.head = LHEAD
+		self.direction = LEFT
 		self.change = []
 		self.apple = [12,12]
 		self.dead = False
@@ -63,20 +74,34 @@ class Game:
 			for x in range(WIDTH-1,WIDTH):
 				for y in range(2,HEIGHT-1):
 					insane.append([x,y])
-			self.apple = random.sample(insane,1)[0]
+			for x in range(1,WIDTH):
+				for y in range(2,3):
+					insane.append([x,y])
+			for x in range(1,WIDTH):
+				for y in range(HEIGHT-2,HEIGHT-1):
+					insane.append([x,y])
+			self.apple = random.sample(insane,1)[0] # Index to 0 because random.sample returns a list. Even though it's only a one-long list, you still need to index into it to get the coordinates.
+		elif self.difficulty == "impossible":
+			self.speed = IMPOSSIBLE
+			impossible = [[1,2],[WIDTH-1,2],[1,HEIGHT-2],[WIDTH-1,HEIGHT-2]]
+			self.apple = random.sample(impossible,1)[0]
 
 	def changeDirection(self, direction):
-		if (direction == "w" or direction == "k" or direction == "\x1b[A") and self.direction != [0,-1]:
-			self.direction = [0,1]	# UP
+		if (direction == "w" or direction == "k" or direction == "\x1b[A") and self.direction != [0,-1] and not self.paused:
+			self.direction = UP
+			self.head = UHEAD
 			return
-		elif (direction == "d" or direction == "l" or direction == "\x1b[C") and self.direction != [1,0]:
-			self.direction = [-1,0]	# RIGHT
+		elif (direction == "d" or direction == "l" or direction == "\x1b[C") and self.direction != [1,0] and not self.paused:
+			self.direction = RIGHT
+			self.head = RHEAD
 			return
-		elif (direction == "s" or direction == "j" or direction == "\x1b[B") and self.direction != [0,1]:
-			self.direction = [0,-1]	# DOWN
+		elif (direction == "s" or direction == "j" or direction == "\x1b[B") and self.direction != [0,1] and not self.paused:
+			self.direction = DOWN
+			self.head = DHEAD
 			return
-		elif (direction == "a" or direction == "h" or direction == "\x1b[D") and self.direction != [-1,0]:
-			self.direction = [1,0]	# LEFT
+		elif (direction == "a" or direction == "h" or direction == "\x1b[D") and self.direction != [-1,0] and not self.paused:
+			self.direction = LEFT
+			self.head = LHEAD
 			return
 
 	def pause(self):
@@ -102,8 +127,7 @@ class Game:
 		termios.tcsetattr(sys.stdin, termios.TCSANOW, newterm)
 		while not self.dead:
 			try:
-				if self.apple in self.snake:
-					SEG = 'A'
+				if self.apple in self.snake and self.apple != self.snake[0]:
 					self.parse_difficulty()
 				self.events()
 				self.logic()
@@ -215,7 +239,10 @@ class Game:
 					elif y == 1 or y == HEIGHT-1:
 						print('-',end='')
 					elif [x,y] in self.snake:
-						print(SEG,end='')
+						if [x,y] == self.snake[0]:
+							print(self.head,end='')
+						else:
+							print(SEG,end='')
 					elif [x,y] == self.apple:
 						print(APPLE,end='')
 					elif y != HEIGHT and y != 0:
