@@ -1,10 +1,15 @@
 #!/usr/bin/python3
 
+################# To Do #################
+# Add a query to ask where the player would like high scores to be saved.
+#########################################
+
 from time import sleep
 import random
 import subprocess
 import sys
 import termios
+import os.path
 
 DHEAD = '^'
 UHEAD = 'v'
@@ -24,7 +29,7 @@ NORMAL = .1
 HARD = .06
 INSANE = .04
 IMPOSSIBLE = .01
-PATH = '/home/ben/Documents/programming/python/snake'
+PATH = '.'	#Set path to save directory equal to current directory.		#'/home/ben/Documents/programming/python/snake'
 
 
 class Game:
@@ -46,9 +51,14 @@ class Game:
 			self.difficulty = "normal"	# Default difficulty
 		else:
 			self.difficulty = sys.argv[1]	# Set it to a command line specified difficulty
+		self.path = "%s/%s.data"%(PATH,self.difficulty)
+		if os.path.isfile(self.path) == False:
+			new = open(self.path, 'w+')		#Make a new highscores file.
+			new.write(str('0'))
+			new.close()
 		self.parse_difficulty()
 
-	def parse_difficulty(self):
+	def parse_difficulty(self):			#Parse the difficulty passed to a speed and spawn behavior for the apple
 		if self.difficulty == "easy":
 			self.speed = EASY
 			self.apple = [random.randint(10, WIDTH-10), random.randint(5,HEIGHT-5)]
@@ -183,17 +193,17 @@ class Game:
 	### Draw ###
 	def draw(self):
 		if self.dead:
-			highscores = open("%s/%s.data"%(PATH,self.difficulty))
+			highscores = open(self.path)		#Open the highscore file for the current difficulty and read it.
 			highscore = []
 			for score in highscores:
 				highscore.append(int(score.rstrip()))
 			highscores.close()
-			if highscore[0] < self.score:
+			if highscore[0] < self.score:				#Check if the score is a high score, then save it.
 				if highscore[0]-self.score == 1:
 					print("You got a high score! Your score of %d beat the previous high score by %d point!"%(self.score, self.score-highscore[0]))
 				else:
 					print("You got a high score! Your score of %d beat the previous high score by %d points!"%(self.score, self.score-highscore[0]))
-				highscores = open("%s/%s.data"%(PATH,self.difficulty),'w')
+				highscores = open(self.path,'w')
 				highscores.write(str(self.score))
 			"""
 			else:
