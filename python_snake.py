@@ -2,6 +2,7 @@
 
 ################# To Do #################
 # Add a query to ask where the player would like high scores to be saved.
+#
 #########################################
 
 from time import sleep
