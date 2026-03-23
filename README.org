@@ -1,0 +1,3 @@
+* Installation
+1. ~docker pull bensson/python-snake:latest~
+2. ~docker run -it bensson/python-snake:latest~
