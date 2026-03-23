@@ -1,6 +1,6 @@
-ARG PYTHON_VERSION=3.10
+ARG PYTHON_VERSION=3.10-alpine
 
-FROM python:${PYTHON_VERSION} AS builder
+FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
 COPY python_snake.py .
