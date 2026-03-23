@@ -11,6 +11,7 @@ import subprocess
 import sys
 import termios
 import os.path
+import shutil
 
 DHEAD = '^'
 UHEAD = 'v'
@@ -23,8 +24,9 @@ LEFT = [1,0]
 
 SEG = 'o'
 APPLE = '@'
-HEIGHT = 23
-WIDTH = 79
+TERM_WIDTH, TERM_HEIGHT = shutil.get_terminal_size((80,24))
+GAME_HEIGHT = TERM_HEIGHT-1
+GAME_WIDTH = TERM_WIDTH-1
 EASY = ["easy",.2,.99,10,1]	#[speed, increment, mod] where speed refers to how much time between each frame and increment refers to how much this decreases when the the player gets more points.
 NORMAL = ["normal",.1,.8,5,3]
 HARD = ["hard",.06,.7,3,4]
@@ -73,46 +75,46 @@ class Game:
 		if self.difficulty[DIFFICULTY] == "easy":
 			self.difficulty = EASY
 			easy = []
-			for x in range(10,WIDTH-10):
-				for y in range(10,HEIGHT-10):
+			for x in range(10,GAME_WIDTH-10):
+				for y in range(10,GAME_HEIGHT-10):
 					easy.append([x,y])
 			self.appleLoc = easy
 		elif self.difficulty[DIFFICULTY] == "normal":
 			self.difficulty = NORMAL
 			normal = []
-			for x in range(2,WIDTH-2):
-				for y in range(2,HEIGHT-2):
+			for x in range(2,GAME_WIDTH-2):
+				for y in range(2,GAME_HEIGHT-2):
 					normal.append([x,y])
 			self.appleLoc =	normal
 		elif self.difficulty[DIFFICULTY] == "hard":
 			self.difficulty = HARD
 			hard = []
 			for x in range(2,11):
-				for y in range(2,HEIGHT-1):
+				for y in range(2,GAME_HEIGHT-1):
 					hard.append([x,y])
-			for x in range(WIDTH-10,WIDTH-1):
-				for y in range(2,HEIGHT-1):
+			for x in range(GAME_WIDTH-10,GAME_WIDTH-1):
+				for y in range(2,GAME_HEIGHT-1):
 					hard.append([x,y])
 			self.appleLoc = hard
 		elif self.difficulty[DIFFICULTY] == "insane":
 			self.difficulty = INSANE
 			insane = []
 			for x in range(1,2):
-				for y in range(2,HEIGHT-1):
+				for y in range(2,GAME_HEIGHT-1):
 					insane.append([x,y])
-			for x in range(WIDTH-1,WIDTH):
-				for y in range(2,HEIGHT-1):
+			for x in range(GAME_WIDTH-1,GAME_WIDTH):
+				for y in range(2,GAME_HEIGHT-1):
 					insane.append([x,y])
-			for x in range(1,WIDTH):
+			for x in range(1,GAME_WIDTH):
 				for y in range(2,3):
 					insane.append([x,y])
-			for x in range(1,WIDTH):
-				for y in range(HEIGHT-2,HEIGHT-1):
+			for x in range(1,GAME_WIDTH):
+				for y in range(GAME_HEIGHT-2,GAME_HEIGHT-1):
 					insane.append([x,y])
 			self.appleLoc = insane
 		elif self.difficulty[DIFFICULTY] == "impossible":
 			self.difficulty = IMPOSSIBLE
-			impossible = [[1,2],[WIDTH-1,2],[1,HEIGHT-2],[WIDTH-1,HEIGHT-2]]
+			impossible = [[1,2],[GAME_WIDTH-1,2],[1,GAME_HEIGHT-2],[GAME_WIDTH-1,GAME_HEIGHT-2]]
 			self.appleLoc = impossible
 		self.speed = self.difficulty[SPEED]
 
@@ -174,28 +176,24 @@ class Game:
 
 
 	def run(self):
-		subprocess.call(["xset","-r"])
 		oldterm = termios.tcgetattr(sys.stdin)
 		newterm = termios.tcgetattr(sys.stdin)
 		newterm[3] &= ~termios.ICANON & ~termios.ECHO
 		newterm[6][termios.VTIME] = 0
 		newterm[6][termios.VMIN] = 0
 		termios.tcsetattr(sys.stdin, termios.TCSANOW, newterm)
-		while not self.dead:
-			try:
+
+		try:
+			print("\033[2J", end="")
+		
+			while not self.dead:
 				if self.apple in self.snake and self.apple != self.snake[0]: # The apple spawned inside the body of the snake.
 					self.placeApple
 				self.events()
 				self.logic()
 				self.draw()
-			except:
-				self.dead = True
-				termios.tcsetattr(sys.stdin, termios.TCSANOW, oldterm)
-				subprocess.call(["xset","r"])
-				raise
-		termios.tcsetattr(sys.stdin, termios.TCSANOW, oldterm)
-		subprocess.call(["xset","r"])
-
+		finally:
+			termios.tcsetattr(sys.stdin, termios.TCSANOW, oldterm)
 
 
 	### Events ###
@@ -238,7 +236,8 @@ class Game:
 				self.faster()
 				self.text = "Score: %s"%self.score
 				self.growing = self.difficulty[GROWTH]
-		if self.snake[0][0] == 0 or self.snake[0][1] == 1 or self.snake[0][0] == WIDTH or self.snake[0][1] == HEIGHT-1 or self.snake[0] in self.snake[1:]:	# Kill snake
+		if self.snake[0][0] <= 0 or self.snake[0][0] >= GAME_WIDTH or self.snake[0][1] <= 1 or self.snake[0][1] >= GAME_HEIGHT-1 or self.snake[0] in self.snake[1:]:
+			# Kill snake
 			self.dead = True
 
 
@@ -259,18 +258,17 @@ class Game:
 				highscores = open(self.path,'w')
 				highscores.write(str(self.score))
 		elif not self.dead:
-			for y in range(0,HEIGHT+1):
-				printed = False
-				for x in range(0,WIDTH+1):
-					if (x == 0 or x == WIDTH) and y != 0:
-						if y == HEIGHT and not printed:
-							print(self.text)
-							printed = True
-						elif y == 1 or y == HEIGHT-1:
+			# Move cursor to top-left
+			print("\033[H", end="")
+
+			for y in range(0,TERM_HEIGHT):
+				for x in range(0,TERM_WIDTH):
+					if (x == 0 or x == GAME_WIDTH) and y != 0:
+						if y == 1 or y == GAME_HEIGHT-1:
 							print('+',end='')
-						elif y != HEIGHT:
+						elif y != GAME_HEIGHT:
 							print('|',end='')
-					elif y == 1 or y == HEIGHT-1:
+					elif y == 1 or y == GAME_HEIGHT-1:
 						print('-',end='')
 					elif [x,y] in self.snake:
 						if [x,y] == self.snake[0]:
@@ -279,11 +277,10 @@ class Game:
 							print(SEG,end='')
 					elif [x,y] == self.apple:
 						print(APPLE,end='')
-					elif y != HEIGHT and y != 0:
+					elif y != GAME_HEIGHT and y != 0:
 						print(' ',end='')
+			print(self.text)
 			sleep(self.speed)
-
-
 
 
 def main():
