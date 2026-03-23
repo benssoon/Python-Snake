@@ -176,28 +176,24 @@ class Game:
 
 
 	def run(self):
-		subprocess.call(["xset","-r"])
 		oldterm = termios.tcgetattr(sys.stdin)
 		newterm = termios.tcgetattr(sys.stdin)
 		newterm[3] &= ~termios.ICANON & ~termios.ECHO
 		newterm[6][termios.VTIME] = 0
 		newterm[6][termios.VMIN] = 0
 		termios.tcsetattr(sys.stdin, termios.TCSANOW, newterm)
-		while not self.dead:
-			try:
+
+		try:
+			print("\033[2J", end="")
+		
+			while not self.dead:
 				if self.apple in self.snake and self.apple != self.snake[0]: # The apple spawned inside the body of the snake.
 					self.placeApple
 				self.events()
 				self.logic()
 				self.draw()
-			except:
-				self.dead = True
-				termios.tcsetattr(sys.stdin, termios.TCSANOW, oldterm)
-				subprocess.call(["xset","r"])
-				raise
-		termios.tcsetattr(sys.stdin, termios.TCSANOW, oldterm)
-		subprocess.call(["xset","r"])
-
+		finally:
+			termios.tcsetattr(sys.stdin, termios.TCSANOW, oldterm)
 
 
 	### Events ###
@@ -262,15 +258,12 @@ class Game:
 				highscores = open(self.path,'w')
 				highscores.write(str(self.score))
 		elif not self.dead:
+			# Move cursor to top-left
+			print("\033[H", end="")
+
 			for y in range(0,TERM_HEIGHT):
-				printed = False
 				for x in range(0,TERM_WIDTH):
 					if (x == 0 or x == GAME_WIDTH) and y != 0:
-						'''
-						if y == GAME_HEIGHT and not printed:
-							print(self.text)
-							printed = True
-						'''
 						if y == 1 or y == GAME_HEIGHT-1:
 							print('+',end='')
 						elif y != GAME_HEIGHT:
@@ -288,8 +281,6 @@ class Game:
 						print(' ',end='')
 			print(self.text)
 			sleep(self.speed)
-
-
 
 
 def main():
