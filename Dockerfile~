@@ -1,0 +1,10 @@
+ARG PYTHON_VERSION=3.10-alpine3.23
+
+FROM ubuntu:22.04
+
+WORKDIR /
+COPY python_snake.py ./
+
+RUN chmod +x ./python_snake.py
+
+CMD [ "./python_snake.py" ]
